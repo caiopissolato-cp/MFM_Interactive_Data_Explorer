@@ -1,0 +1,8 @@
+{
+  "application_name": "MFM Interactive Data Explorer",
+  "default_meter_model": "Model 2600",
+  "default_delimiter": "tab",
+  "moving_average_enabled": false,
+  "moving_average_window": 60,
+  "project_schema_version": 1
+}
