@@ -1,27 +1,60 @@
+
 import streamlit as st
-import pandas as pd
+
+from core.data_loader import load_delimited_file
+
 
 st.title("Data Import")
 st.caption("Upload and validate an MPFM translated raw-data file.")
 
-uploaded = st.file_uploader("Choose a TXT file", type=["txt"])
+uploaded = st.file_uploader(
+    "Choose a TXT file",
+    type=["txt"],
+    key="mpfm_file_uploader",
+)
+
+delimiter_options = {
+    "Tab": "\t",
+    "Comma": ",",
+    "Semicolon": ";",
+    "Space": r"\s+",
+}
+
+delimiter_label = st.selectbox(
+    "Delimiter",
+    list(delimiter_options.keys()),
+    index=0,
+    key="mpfm_delimiter",
+)
 
 if uploaded is not None:
-    delimiter_label = st.selectbox(
-        "Delimiter",
-        ["Tab", "Comma", "Semicolon", "Space"],
-        index=0,
-    )
-    delimiters = {"Tab": "\\t", "Comma": ",", "Semicolon": ";", "Space": r"\\s+"}
     try:
-        df = pd.read_csv(uploaded, sep=delimiters[delimiter_label], engine="python")
-        st.success(f"Loaded {len(df):,} rows and {len(df.columns):,} columns.")
-        st.write("Detected columns")
-        st.dataframe(pd.DataFrame({"Column": df.columns}), use_container_width=True)
-        st.write("Preview")
-        st.dataframe(df.head(20), use_container_width=True)
+        file_bytes = uploaded.getvalue()
+        df = load_delimited_file(
+            file_bytes,
+            delimiter=delimiter_options[delimiter_label],
+        )
+
+        # Share the imported data with the other application pages.
+        st.session_state["dataframe"] = df
+        st.session_state["source_filename"] = uploaded.name
+
+        st.success(
+            f"Loaded {len(df):,} rows and {len(df.columns):,} columns."
+        )
+
     except Exception as exc:
-        st.error("Could not read the file. Check the delimiter and file format.")
+        st.session_state.pop("dataframe", None)
+        st.session_state.pop("source_filename", None)
+
+        st.error(
+            "Could not read the file. Check the delimiter and file format."
+        )
         st.exception(exc)
+
 else:
     st.info("Upload a file to begin.")
+
+    # Clear previously imported data when the uploader is empty.
+    st.session_state.pop("dataframe", None)
+    st.session_state.pop("source_filename", None)
